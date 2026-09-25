@@ -1,0 +1,1148 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>FNAF - Five Nights</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+  body {
+    background: #000;
+    overflow: hidden;
+    font-family: 'Courier New', monospace;
+    color: #fff;
+    height: 100vh;
+    cursor: crosshair;
+  }
+  #game {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* ================= МЕНЮ ================= */
+  #menu {
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(circle at center, #1a0a0a 0%, #000 100%);
+    z-index: 500;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+  #menu.hidden { display: none; }
+  #menu h1 {
+    font-size: 72px;
+    color: #ff2222;
+    text-shadow: 0 0 30px #ff0000, 0 0 60px #ff0000;
+    margin-bottom: 10px;
+    letter-spacing: 8px;
+    animation: flicker 3s infinite;
+  }
+  @keyframes flicker {
+    0%, 90%, 100% { opacity: 1; }
+    92% { opacity: 0.3; }
+    94% { opacity: 1; }
+    96% { opacity: 0.5; }
+  }
+  #menu h2 {
+    font-size: 22px;
+    color: #888;
+    margin-bottom: 40px;
+    letter-spacing: 4px;
+  }
+  #record-display {
+    font-size: 20px;
+    color: #ffcc00;
+    margin-bottom: 30px;
+    text-shadow: 0 0 10px #ffcc00;
+  }
+  #menu button {
+    padding: 18px 60px;
+    background: #1a0000;
+    border: 3px solid #ff2222;
+    color: #ff2222;
+    font-family: inherit;
+    font-size: 20px;
+    font-weight: bold;
+    letter-spacing: 3px;
+    cursor: pointer;
+    margin: 8px;
+    transition: all 0.2s;
+  }
+  #menu button:hover {
+    background: #ff2222;
+    color: #000;
+    box-shadow: 0 0 30px #ff2222;
+    transform: scale(1.05);
+  }
+  #menu .hint {
+    margin-top: 40px;
+    font-size: 13px;
+    color: #555;
+    max-width: 600px;
+    line-height: 1.8;
+  }
+
+  /* ================= ОФИС ================= */
+  #office {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at center, #2a1f14 0%, #0a0705 100%);
+    transition: filter 0.3s;
+  }
+  #office.dark { filter: brightness(0.1); }
+  #office.red-alert { background: radial-gradient(circle at center, #4a0000 0%, #0a0000 100%); }
+
+  .wall {
+    position: absolute;
+    inset: 0;
+    background:
+      repeating-linear-gradient(90deg, transparent 0 80px, rgba(0,0,0,0.3) 80px 82px),
+      repeating-linear-gradient(0deg, transparent 0 60px, rgba(0,0,0,0.2) 60px 61px);
+  }
+  .desk {
+    position: absolute;
+    bottom: 0; left: 15%; right: 15%;
+    height: 25%;
+    background: linear-gradient(180deg, #3a2a1a 0%, #1a1008 100%);
+    border-top: 4px solid #5a3a1a;
+    box-shadow: 0 -20px 60px rgba(0,0,0,0.9);
+  }
+  .fan {
+    position: absolute;
+    bottom: 26%; left: 50%; transform: translateX(-50%);
+    width: 90px; height: 90px;
+    border-radius: 50%;
+    background: #111;
+    border: 4px solid #333;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .fan-blades {
+    width: 70px; height: 70px;
+    border-radius: 50%;
+    background: conic-gradient(#555 0 25%, #222 25% 50%, #555 50% 75%, #222 75% 100%);
+    animation: spin 1.5s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ================= ДВЕРИ ================= */
+  .door {
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 200px;
+    background: linear-gradient(180deg, #2a1a0a, #050200);
+    border: 3px solid #4a2a0a;
+    transition: transform 0.4s ease-in-out;
+    z-index: 5;
+  }
+  #door-left { left: 0; }
+  #door-right { right: 0; }
+  #door-left.closed { transform: translateX(-95%); box-shadow: 20px 0 40px rgba(0,0,0,0.9); }
+  #door-right.closed { transform: translateX(95%); box-shadow: -20px 0 40px rgba(0,0,0,0.9); }
+
+  .door-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 80px; height: 150px;
+    background: #1a1a1a;
+    border: 3px solid #444;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    z-index: 6;
+    transition: all 0.2s;
+    gap: 8px;
+  }
+  .door-btn:hover { border-color: #ff3333; }
+  .door-btn.active { background: #ff3333; border-color: #ff0000; box-shadow: 0 0 30px #ff0000; }
+  #btn-left { left: 210px; }
+  #btn-right { right: 210px; }
+  .door-btn .led {
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: #330000;
+  }
+  .door-btn.active .led { background: #ff0000; box-shadow: 0 0 15px #ff0000; }
+  .door-btn span { font-size: 10px; color: #ccc; text-align: center; letter-spacing: 1px; }
+
+  /* ================= HUD ================= */
+  #hud {
+    position: absolute;
+    top: 15px; right: 15px;
+    text-align: right;
+    z-index: 20;
+    font-size: 14px;
+    text-shadow: 0 0 5px #fff;
+  }
+  #time { font-size: 28px; color: #ffcc00; }
+  #power { margin-top: 8px; }
+  #power-bar {
+    width: 200px; height: 18px;
+    border: 2px solid #666;
+    background: #000;
+    margin-top: 4px;
+    position: relative;
+    margin-left: auto;
+  }
+  #power-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #00ff00, #ffff00);
+    transition: width 0.3s, background 0.3s;
+  }
+  #usage { margin-top: 8px; font-size: 12px; color: #aaa; }
+
+  /* ================= КНОПКА КАМЕР ================= */
+  #cam-btn {
+    position: absolute;
+    bottom: 20px; left: 20px;
+    padding: 15px 30px;
+    background: #1a1a1a;
+    border: 3px solid #666;
+    color: #fff;
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    z-index: 20;
+    transition: all 0.2s;
+    letter-spacing: 2px;
+  }
+  #cam-btn:hover { background: #333; border-color: #ff3333; color: #ff3333; }
+
+  /* ================= ИНТЕРФЕЙС КАМЕР ================= */
+  #cam-view {
+    position: absolute;
+    inset: 0;
+    background: #000;
+    z-index: 100;
+    display: none;
+    flex-direction: column;
+  }
+  #cam-view.active { display: flex; }
+  #cam-screen {
+    flex: 1;
+    position: relative;
+    background: #0a0a0a;
+    overflow: hidden;
+    border: 4px solid #222;
+  }
+  #cam-screen::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(0deg, rgba(0,0,0,0.4) 0 2px, transparent 2px 4px);
+    pointer-events: none;
+    z-index: 10;
+    animation: scan 8s linear infinite;
+  }
+  @keyframes scan { from { background-position: 0 0; } to { background-position: 0 100px; } }
+  #cam-screen::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    box-shadow: inset 0 0 200px rgba(0,0,0,0.9);
+    pointer-events: none;
+    z-index: 9;
+  }
+  .cam-feed {
+    position: absolute;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: #050505;
+  }
+  .cam-feed.active { display: flex; }
+  .cam-feed.stage { background: linear-gradient(135deg, #1a0f05 0%, #050200 100%); }
+  .cam-feed.vent { background: linear-gradient(135deg, #0a1510 0%, #000 100%); }
+  .cam-feed.door { background: linear-gradient(135deg, #0a0a15 0%, #000 100%); }
+  .cam-label {
+    position: absolute;
+    bottom: 20px; left: 20px;
+    font-size: 18px;
+    color: #fff;
+    background: rgba(0,0,0,0.7);
+    padding: 8px 15px;
+    border-left: 4px solid #ff3333;
+    z-index: 15;
+  }
+  #cam-rec {
+    position: absolute;
+    top: 20px; left: 20px;
+    color: #ff0000;
+    font-size: 16px;
+    z-index: 15;
+    animation: blink 1.2s infinite;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  #cam-list {
+    display: flex;
+    background: #111;
+    border-top: 3px solid #333;
+    padding: 10px;
+    gap: 8px;
+    z-index: 15;
+  }
+  .cam-tab {
+    flex: 1;
+    padding: 14px 20px;
+    background: #1a1a1a;
+    border: 2px solid #444;
+    color: #888;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 14px;
+    text-align: center;
+    transition: all 0.15s;
+  }
+  .cam-tab:hover { border-color: #888; color: #ccc; }
+  .cam-tab.active { background: #ff3333; border-color: #ff0000; color: #fff; box-shadow: 0 0 15px #ff3333; }
+  .cam-tab.danger { border-color: #ff0000; color: #ff6666; animation: pulse 0.8s infinite; }
+  @keyframes pulse { 50% { background: #4a0000; } }
+
+  /* ================= АНИМАТРОНИКИ ================= */
+  .animatronic {
+    position: absolute;
+    font-size: 140px;
+    transition: all 0.5s ease;
+    filter: drop-shadow(0 0 25px rgba(255,0,0,0.6));
+    animation: sway 3s ease-in-out infinite;
+  }
+  @keyframes sway {
+    0%, 100% { transform: translateY(0) rotate(-2deg); }
+    50% { transform: translateY(-15px) rotate(2deg); }
+  }
+  .animatronic.hidden { display: none; }
+  .animatronic.scared { animation: run-away 0.6s forwards; }
+  @keyframes run-away {
+    to { transform: translateX(-800px) scale(0.3); opacity: 0; }
+  }
+
+  /* Индикатор что аниматроник у двери */
+  .at-door-indicator {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 60px;
+    z-index: 7;
+    animation: shake 0.3s infinite;
+    filter: drop-shadow(0 0 20px #ff0000);
+  }
+  #indicator-left { left: 30px; }
+  #indicator-right { right: 30px; }
+  @keyframes shake {
+    0%,100% { transform: translateY(-50%) translateX(0); }
+    25% { transform: translateY(-50%) translateX(-8px); }
+    75% { transform: translateY(-50%) translateX(8px); }
+  }
+
+  /* ================= ДЕЙСТВИЯ (торт, звук, свет) ================= */
+  #actions-panel {
+    position: absolute;
+    bottom: 20px; right: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 25;
+  }
+  .action-btn {
+    padding: 12px 20px;
+    background: #1a1a1a;
+    border: 2px solid #666;
+    color: #fff;
+    font-family: inherit;
+    font-size: 13px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .action-btn:hover { border-color: #ffcc00; color: #ffcc00; }
+  .action-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+  .action-btn.cooldown { background: #330000; border-color: #660000; color: #660000; }
+
+  /* ================= ВЕНТИЛЯЦИЯ ПРЕДУПРЕЖДЕНИЕ ================= */
+  #vent-warning {
+    position: absolute;
+    top: 20px; left: 50%;
+    transform: translateX(-50%);
+    color: #ff0000;
+    font-size: 20px;
+    background: rgba(0,0,0,0.9);
+    padding: 15px 30px;
+    border: 3px solid #ff0000;
+    z-index: 50;
+    display: none;
+    animation: blink 0.5s infinite;
+    text-align: center;
+    letter-spacing: 3px;
+    font-weight: bold;
+  }
+  #vent-warning.active { display: block; }
+
+  /* ================= JUMPSCARE ================= */
+  #jumpscare {
+    position: fixed;
+    inset: 0;
+    background: #000;
+    z-index: 9999;
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+  #jumpscare.active {
+    display: flex;
+    animation: shake-hard 0.08s infinite;
+  }
+  #jumpscare .face {
+    font-size: 60vh;
+    animation: zoom 0.6s ease-out forwards;
+    filter: drop-shadow(0 0 60px #f00);
+  }
+  @keyframes zoom {
+    from { transform: scale(0.2) rotate(-10deg); }
+    to { transform: scale(1.4) rotate(10deg); }
+  }
+  @keyframes shake-hard {
+    0%,100% { transform: translate(0,0); }
+    20% { transform: translate(20px,-15px); }
+    40% { transform: translate(-15px,20px); }
+    60% { transform: translate(15px,15px); }
+    80% { transform: translate(-20px,-10px); }
+  }
+
+  /* ================= GAME OVER / VICTORY ================= */
+  #gameover, #victory {
+    position: fixed;
+    inset: 0;
+    background: #000;
+    z-index: 10000;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+  #gameover.active, #victory.active { display: flex; }
+  #gameover h1 {
+    color: #ff0000;
+    font-size: 80px;
+    margin-bottom: 20px;
+    text-shadow: 0 0 40px #ff0000;
+    animation: blink 0.8s infinite;
+    letter-spacing: 6px;
+  }
+  #victory h1 {
+    color: #ffcc00;
+    font-size: 80px;
+    margin-bottom: 20px;
+    text-shadow: 0 0 40px #ffcc00;
+    letter-spacing: 6px;
+  }
+  #gameover p, #victory p { font-size: 22px; color: #aaa; margin-bottom: 15px; }
+  .new-record {
+    color: #ffcc00 !important;
+    font-size: 26px !important;
+    text-shadow: 0 0 20px #ffcc00;
+    animation: pulse-scale 1s infinite;
+  }
+  @keyframes pulse-scale { 50% { transform: scale(1.1); } }
+  #gameover button, #victory button {
+    padding: 15px 50px;
+    background: #1a1a1a;
+    border: 3px solid;
+    font-family: inherit;
+    font-size: 18px;
+    cursor: pointer;
+    letter-spacing: 2px;
+    margin-top: 20px;
+    transition: all 0.2s;
+  }
+  #gameover button { border-color: #ff3333; color: #ff3333; }
+  #gameover button:hover { background: #ff3333; color: #000; }
+  #victory button { border-color: #ffcc00; color: #ffcc00; }
+  #victory button:hover { background: #ffcc00; color: #000; }
+
+  /* ================= УВЕДОМЛЕНИЕ ================= */
+  #toast {
+    position: absolute;
+    top: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.9);
+    color: #fff;
+    padding: 12px 25px;
+    border-left: 4px solid #00ff00;
+    font-size: 16px;
+    z-index: 200;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+    letter-spacing: 1px;
+  }
+  #toast.show { opacity: 1; }
+  #toast.error { border-left-color: #ff0000; }
+  #toast.warn { border-left-color: #ffcc00; }
+</style>
+</head>
+<body>
+<div id="game">
+
+  <!-- ============ МЕНЮ ============ -->
+  <div id="menu">
+    <h1>FNAF</h1>
+    <h2>FIVE NIGHTS</h2>
+    <div id="record-display">🏆 Рекорд: 0:00</div>
+    <button onclick="startGame()">▶ НАЧАТЬ НОЧЬ</button>
+    <button onclick="resetRecord()" style="font-size:14px;padding:10px 30px;">Сбросить рекорд</button>
+    <div class="hint">
+      <strong style="color:#ff6666;">ЦЕЛЬ:</strong> Выжить до 6:00 AM<br><br>
+      <strong>УПРАВЛЕНИЕ:</strong><br>
+      A — левая дверь • D — правая дверь • C — камеры<br><br>
+      <strong style="color:#ff6666;">МЕХАНИКИ:</strong><br>
+      🐤 Если Чика в вентиляции — положи ТОРТ (кнопка справа)<br>
+      🐻 Если Фредди у двери — закрой дверь и посмотри на неё на камере + звук<br>
+      🐰 Если Бонни у двери — закрой дверь и включи КРАСНЫЙ СВЕТ
+    </div>
+  </div>
+
+  <!-- ============ ОФИС ============ -->
+  <div id="office">
+    <div class="wall"></div>
+    <div class="desk"></div>
+    <div class="fan"><div class="fan-blades"></div></div>
+
+    <div id="door-left" class="door"></div>
+    <div id="door-right" class="door"></div>
+
+    <div id="btn-left" class="door-btn" onclick="toggleDoor('left')">
+      <div class="led"></div>
+      <span>ЛЕВАЯ<br>ДВЕРЬ [A]</span>
+    </div>
+    <div id="btn-right" class="door-btn" onclick="toggleDoor('right')">
+      <div class="led"></div>
+      <span>ПРАВАЯ<br>ДВЕРЬ [D]</span>
+    </div>
+
+    <!-- Индикаторы у дверей -->
+    <div id="indicator-left" class="at-door-indicator hidden">👁️</div>
+    <div id="indicator-right" class="at-door-indicator hidden">👁️</div>
+
+    <div id="vent-warning">⚠ ВЕНТИЛЯЦИЯ: ЧИКА ВНУТРИ ⚠</div>
+    <div id="toast"></div>
+  </div>
+
+  <!-- ============ HUD ============ -->
+  <div id="hud">
+    <div id="time">12:00 AM</div>
+    <div id="power">
+      ЭНЕРГИЯ: <span id="power-val">100%</span>
+      <div id="power-bar"><div id="power-fill" style="width:100%"></div></div>
+    </div>
+    <div id="usage">Использование: <span id="usage-val">1</span></div>
+  </div>
+
+  <!-- ============ КНОПКА КАМЕР ============ -->
+  <button id="cam-btn" onclick="toggleCams()">📹 КАМЕРЫ [C]</button>
+
+  <!-- ============ ДЕЙСТВИЯ ============ -->
+  <div id="actions-panel">
+    <button class="action-btn" id="btn-cake" onclick="useAction('cake')">🎂 ПОЛОЖИТЬ ТОРТ</button>
+    <button class="action-btn" id="btn-sound" onclick="useAction('sound')">🔊 ИСПУГАТЬ ЗВУКОМ</button>
+    <button class="action-btn" id="btn-red" onclick="useAction('red')">🔴 КРАСНЫЙ СВЕТ</button>
+  </div>
+
+  <!-- ============ КАМЕРЫ ============ -->
+  <div id="cam-view">
+    <div id="cam-screen">
+      <div id="cam-rec">● REC</div>
+      <div id="cam-feeds"></div>
+      <div class="cam-label" id="cam-label">CAM 1 — ЗАЛ</div>
+    </div>
+    <div id="cam-list"></div>
+  </div>
+
+  <!-- ============ JUMPSCARE ============ -->
+  <div id="jumpscare"><div class="face">👹</div></div>
+
+  <!-- ============ GAME OVER ============ -->
+  <div id="gameover">
+    <h1>GAME OVER</h1>
+    <p id="gameover-msg">Тебя поймали...</p>
+    <p id="record-msg" style="font-size:16px;color:#666;"></p>
+    <button onclick="backToMenu()">В МЕНЮ</button>
+  </div>
+
+  <!-- ============ ПОБЕДА ============ -->
+  <div id="victory">
+    <h1>6:00 AM</h1>
+    <p>Ты выжил до утра!</p>
+    <p id="victory-record" style="font-size:16px;color:#666;"></p>
+    <button onclick="backToMenu()">В МЕНЮ</button>
+  </div>
+
+</div>
+
+<script>
+/* =====================================================
+   НАСТРОЙКИ
+===================================================== */
+const CONFIG = {
+  nightDuration: 300,   // 5 минут реального времени
+  baseDrain: 0.10,
+  doorDrain: 0.15,
+  camDrain: 0.08,
+  actionCost: 3,        // % энергии за действие
+  cooldown: 6,          // сек кулдаун действия
+};
+
+/* =====================================================
+   КАМЕРЫ (всего 3)
+===================================================== */
+const CAMS = [
+  { id: 'stage', name: 'CAM 1 — ЗАЛ',      cls: 'stage', icon: '🎭' },
+  { id: 'vent',  name: 'CAM 2 — ВЕНТИЛЯЦИЯ', cls: 'vent',  icon: '🕳️' },
+  { id: 'door',  name: 'CAM 3 — ДВЕРИ',    cls: 'door',  icon: '🚪' },
+];
+
+/* =====================================================
+   АНИМАТРОНИКИ
+===================================================== */
+const ANIMATRONIC_DEFS = [
+  {
+    id: 'freddy',
+    name: 'Фредди',
+    emoji: '🐻',
+    color: '#8B4513',
+    moveInterval: 7,
+    level: 4,
+    path: ['stage', 'door'],       // идёт к двери через зал
+    counter: 'door',               // способ: закрыть дверь + камера + звук
+  },
+  {
+    id: 'bonnie',
+    name: 'Бонни',
+    emoji: '🐰',
+    color: '#9932CC',
+    moveInterval: 6,
+    level: 4,
+    path: ['stage', 'door'],
+    counter: 'door',               // способ: закрыть дверь + красный свет
+  },
+  {
+    id: 'chica',
+    name: 'Чика',
+    emoji: '🐤',
+    color: '#FFD700',
+    moveInterval: 5,
+    level: 5,
+    path: ['stage', 'vent'],       // идёт через вентиляцию
+    counter: 'cake',               // способ: торт
+  },
+];
+
+/* =====================================================
+   СОСТОЯНИЕ
+===================================================== */
+let state = {};
+let record = 0;
+let actionCooldowns = { cake: 0, sound: 0, red: 0 };
+let lastTime = performance.now();
+let animTimer = 0;
+
+/* =====================================================
+   ЗАГРУЗКА РЕКОРДА
+===================================================== */
+function loadRecord() {
+  const r = localStorage.getItem('fnaf_record');
+  record = r ? parseFloat(r) : 0;
+  document.getElementById('record-display').textContent =
+    '🏆 Рекорд: ' + formatTime(record);
+}
+
+function saveRecord(t) {
+  if (t > record) {
+    record = t;
+    localStorage.setItem('fnaf_record', t);
+    return true;
+  }
+  return false;
+}
+
+function resetRecord() {
+  record = 0;
+  localStorage.removeItem('fnaf_record');
+  loadRecord();
+}
+
+function formatTime(seconds) {
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+/* =====================================================
+   СТАРТ / ИНИЦИАЛИЗАЦИЯ
+===================================================== */
+function startGame() {
+  document.getElementById('menu').classList.add('hidden');
+  initGame();
+}
+
+function backToMenu() {
+  state.running = false;
+  document.getElementById('gameover').classList.remove('active');
+  document.getElementById('victory').classList.remove('active');
+  document.getElementById('cam-view').classList.remove('active');
+  document.getElementById('menu').classList.remove('hidden');
+  loadRecord();
+}
+
+function initGame() {
+  state = {
+    running: true,
+    time: 0,
+    power: 100,
+    doors: { left: false, right: false },
+    camsOpen: false,
+    activeCam: 'stage',
+    animatronics: ANIMATRONIC_DEFS.map(a => ({
+      ...a,
+      location: 'stage',
+      pathIndex: 0,
+      moveTimer: Math.random() * 3,
+      atDoor: null,        // 'left' | 'right' | 'vent' | null
+      scared: false,
+    })),
+    redAlert: false,
+    redAlertTimer: 0,
+  };
+
+  actionCooldowns = { cake: 0, sound: 0, red: 0 };
+
+  document.getElementById('gameover').classList.remove('active');
+  document.getElementById('victory').classList.remove('active');
+  document.getElementById('jumpscare').classList.remove('active');
+  document.getElementById('cam-view').classList.remove('active');
+  document.getElementById('vent-warning').classList.remove('active');
+  document.getElementById('door-left').classList.remove('closed');
+  document.getElementById('door-right').classList.remove('closed');
+  document.getElementById('btn-left').classList.remove('active');
+  document.getElementById('btn-right').classList.remove('active');
+  document.getElementById('indicator-left').classList.add('hidden');
+  document.getElementById('indicator-right').classList.add('hidden');
+  document.getElementById('office').classList.remove('dark');
+  document.getElementById('office').classList.remove('red-alert');
+
+  buildCamList();
+  switchCam('stage');
+  updateHUD();
+}
+
+/* =====================================================
+   КАМЕРЫ
+===================================================== */
+function buildCamList() {
+  const list = document.getElementById('cam-list');
+  list.innerHTML = '';
+  CAMS.forEach(cam => {
+    const tab = document.createElement('div');
+    tab.className = 'cam-tab';
+    tab.textContent = cam.name;
+    tab.dataset.cam = cam.id;
+    tab.onclick = () => switchCam(cam.id);
+    list.appendChild(tab);
+  });
+}
+
+function switchCam(id) {
+  state.activeCam = id;
+  document.querySelectorAll('.cam-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.cam === id);
+  });
+  const cam = CAMS.find(c => c.id === id);
+  document.getElementById('cam-label').textContent = cam.name;
+  renderCamFeeds();
+}
+
+function toggleCams() {
+  if (!state.running) return;
+  state.camsOpen = !state.camsOpen;
+  document.getElementById('cam-view').classList.toggle('active', state.camsOpen);
+  if (state.camsOpen) renderCamFeeds();
+  updateHUD();
+}
+
+function renderCamFeeds() {
+  const feeds = document.getElementById('cam-feeds');
+  feeds.innerHTML = '';
+  const cam = CAMS.find(c => c.id === state.activeCam);
+  if (!cam) return;
+
+  const feed = document.createElement('div');
+  feed.className = 'cam-feed active ' + cam.cls;
+  feed.innerHTML = `<div style="opacity:0.15;font-size:220px;position:absolute;">${cam.icon}</div>`;
+
+  // Разместить аниматроников в зависимости от камеры
+  state.animatronics.forEach(a => {
+    let show = false;
+    let style = '';
+
+    if (cam.id === 'stage' && a.location === 'stage') {
+      show = true;
+      // Три позиции на сцене
+      const idx = state.animatronics.indexOf(a);
+      const positions = [{left:'20%',top:'35%'},{left:'45%',top:'30%'},{left:'70%',top:'35%'}];
+      style = `left:${positions[idx].left};top:${positions[idx].top};`;
+    } else if (cam.id === 'vent' && a.location === 'vent') {
+      show = true;
+      style = 'left:50%;top:40%;transform:translateX(-50%);';
+    } else if (cam.id === 'door') {
+      // Показываем того, кто у дверей
+      if (a.atDoor === 'left') { show = true; style = 'left:15%;top:30%;'; }
+      if (a.atDoor === 'right') { show = true; style = 'right:15%;top:30%;'; }
+    }
+
+    if (show) {
+      const el = document.createElement('div');
+      el.className = 'animatronic';
+      el.textContent = a.emoji;
+      el.style.cssText = style;
+      el.style.filter = `drop-shadow(0 0 30px ${a.color})`;
+      feed.appendChild(el);
+    }
+  });
+
+  feeds.appendChild(feed);
+}
+
+/* =====================================================
+   ДВЕРИ
+===================================================== */
+function toggleDoor(side) {
+  if (!state.running) return;
+  state.doors[side] = !state.doors[side];
+  document.getElementById('door-' + side).classList.toggle('closed', state.doors[side]);
+  document.getElementById('btn-' + side).classList.toggle('active', state.doors[side]);
+  updateHUD();
+}
+
+/* =====================================================
+   ДЕЙСТВИЯ (торт, звук, красный свет)
+===================================================== */
+function useAction(type) {
+  if (!state.running) return;
+  if (actionCooldowns[type] > 0) {
+    showToast('Перезарядка!', 'warn');
+    return;
+  }
+  if (state.power < CONFIG.actionCost) {
+    showToast('Мало энергии!', 'error');
+    return;
+  }
+
+  let success = false;
+
+  if (type === 'cake') {
+    // Торт для Чики
+    const chica = state.animatronics.find(a => a.id === 'chica');
+    if (chica.location === 'vent') {
+      chica.location = 'stage';
+      chica.pathIndex = 0;
+      chica.atDoor = null;
+      success = true;
+      showToast('🎂 Чика забрала торт и ушла!', 'ok');
+    } else {
+      showToast('Чика не в вентиляции', 'warn');
+      return;
+    }
+  }
+
+  if (type === 'sound') {
+    // Звук для Фредди (только если у двери и дверь закрыта)
+    const freddy = state.animatronics.find(a => a.id === 'freddy');
+    if (freddy.atDoor && state.doors[freddy.atDoor]) {
+      freddy.location = 'stage';
+      freddy.pathIndex = 0;
+      freddy.atDoor = null;
+      success = true;
+      showToast('🔊 Фредди испугался и убежал!', 'ok');
+    } else {
+      showToast('Нужно: Фредди у двери + дверь закрыта', 'warn');
+      return;
+    }
+  }
+
+  if (type === 'red') {
+    // Красный свет для Бонни
+    const bonnie = state.animatronics.find(a => a.id === 'bonnie');
+    if (bonnie.atDoor && state.doors[bonnie.atDoor]) {
+      bonnie.location = 'stage';
+      bonnie.pathIndex = 0;
+      bonnie.atDoor = null;
+      success = true;
+      showToast('🔴 Бонни испугался красного света!', 'ok');
+    } else {
+      showToast('Нужно: Бонни у двери + дверь закрыта', 'warn');
+      return;
+    }
+  }
+
+  if (success) {
+    state.power -= CONFIG.actionCost;
+    actionCooldowns[type] = CONFIG.cooldown;
+    updateCooldownUI();
+    if (state.camsOpen) renderCamFeeds();
+  }
+}
+
+function updateCooldownUI() {
+  ['cake','sound','red'].forEach(type => {
+    const btn = document.getElementById('btn-' + type);
+    if (actionCooldowns[type] > 0) {
+      btn.classList.add('cooldown');
+      btn.disabled = true;
+      btn.textContent = btn.textContent.replace(/ \(\d+\)/, '') + ` (${Math.ceil(actionCooldowns[type])})`;
+    } else {
+      btn.classList.remove('cooldown');
+      btn.disabled = false;
+      btn.textContent = btn.textContent.replace(/ \(\d+\)/, '');
+    }
+  });
+}
+
+/* =====================================================
+   TOAST УВЕДОМЛЕНИЯ
+===================================================== */
+let toastTimer;
+function showToast(text, type = 'ok') {
+  const toast = document.getElementById('toast');
+  toast.textContent = text;
+  toast.className = 'show ' + (type === 'ok' ? '' : type);
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('show'), 2000);
+}
+
+/* =====================================================
+   HUD
+===================================================== */
+function updateHUD() {
+  const totalMinutes = state.time / CONFIG.nightDuration * 360;
+  const hour = Math.floor(totalMinutes / 60);
+  const min = Math.floor(totalMinutes % 60);
+  const displayHour = hour === 0 ? 12 : hour;
+  document.getElementById('time').textContent =
+    `${displayHour}:${String(min).padStart(2, '0')} AM`;
+
+  document.getElementById('power-val').textContent = Math.max(0, state.power).toFixed(0) + '%';
+  const fill = document.getElementById('power-fill');
+  fill.style.width = Math.max(0, state.power) + '%';
+  if (state.power > 50) fill.style.background = 'linear-gradient(90deg,#00ff00,#ffff00)';
+  else if (state.power > 20) fill.style.background = 'linear-gradient(90deg,#ffff00,#ff8800)';
+  else fill.style.background = 'linear-gradient(90deg,#ff8800,#ff0000)';
+
+  let usage = 1;
+  if (state.doors.left) usage++;
+  if (state.doors.right) usage++;
+  if (state.camsOpen) usage++;
+  document.getElementById('usage-val').textContent = usage;
+}
+
+/* =====================================================
+   ЭНЕРГИЯ
+===================================================== */
+function drainPower(dt) {
+  let drain = CONFIG.baseDrain;
+  if (state.doors.left) drain += CONFIG.doorDrain;
+  if (state.doors.right) drain += CONFIG.doorDrain;
+  if (state.camsOpen) drain += CONFIG.camDrain;
+  state.power -= drain * dt;
+  if (state.power <= 0) {
+    state.power = 0;
+    if (state.doors.left) toggleDoor('left');
+    if (state.doors.right) toggleDoor('right');
+    document.getElementById('office').classList.add('dark');
+    if (Math.random() < 0.03) gameOver('Энергия закончилась...');
+  }
+}
+
+/* =====================================================
+   АНИМАТРОНИКИ
+===================================================== */
+function updateAnimatronics() {
+  state.animatronics.forEach(a => {
+    a.moveTimer += 1;
+    const progress = state.time / CONFIG.nightDuration;
+    const aggression = a.level + progress * 6;
+
+    if (a.moveTimer >= a.moveInterval) {
+      a.moveTimer = 0;
+      if (Math.random() < aggression / 20) {
+        moveAnimatronic(a);
+      }
+    }
+
+    // Атака если у двери/вентиляции и не отреагировали
+    if (a.atDoor === 'left' && !state.doors.left) {
+      gameOver(`${a.name} вошёл через левую дверь!`);
+      return;
+    }
+    if (a.atDoor === 'right' && !state.doors.right) {
+      gameOver(`${a.name} вошёл через правую дверь!`);
+      return;
+    }
+    if (a.atDoor === 'vent') {
+      // Чика в вентиляции — даём 4 секунды на реакцию
+      a.ventTimer = (a.ventTimer || 0) + 1;
+      if (a.ventTimer >= 4) {
+        gameOver(`Чика вылезла из вентиляции!`);
+        return;
+      }
+    }
+  });
+
+  updateVentWarning();
+  updateDoorIndicators();
+}
+
+function moveAnimatronic(a) {
+  // Чика идёт через вентиляцию
+  if (a.id === 'chica') {
+    if (a.location === 'stage') {
+      // Проверяем, лежит ли торт в вентиляции (некую роль играет факт что торт не нужен пока она не в венте)
+      a.location = 'vent';
+      a.atDoor = 'vent';
+      a.ventTimer = 0;
+    }
+  } else {
+    // Фредди и Бонни идут к двери
+    if (a.location === 'stage') {
+      // Выбираем сторону случайно
+      const side = Math.random() < 0.5 ? 'left' : 'right';
+      a.atDoor = side;
+      a.location = 'door';
+    }
+  }
+
+  if (state.camsOpen) renderCamFeeds();
+}
+
+function updateVentWarning() {
+  const chicaInVent = state.animatronics.some(a => a.id === 'chica' && a.location === 'vent');
+  document.getElementById('vent-warning').classList.toggle('active', chicaInVent);
+}
+
+function updateDoorIndicators() {
+  // Показываем индикатор у двери, если там кто-то есть
+  const leftThreat = state.animatronics.some(a => a.atDoor === 'left');
+  const rightThreat = state.animatronics.some(a => a.atDoor === 'right');
+  document.getElementById('indicator-left').classList.toggle('hidden', !leftThreat);
+  document.getElementById('indicator-right').classList.toggle('hidden', !rightThreat);
+}
+
+/* =====================================================
+   КОНЕЦ ИГРЫ
+===================================================== */
+function gameOver(msg) {
+  if (!state.running) return;
+  state.running = false;
+
+  const attacker = state.animatronics.find(a => msg.includes(a.name)) || state.animatronics[0];
+  const js = document.getElementById('jumpscare');
+  js.querySelector('.face').textContent = attacker.emoji;
+  js.classList.add('active');
+
+  setTimeout(() => {
+    js.classList.remove('active');
+    document.getElementById('gameover-msg').textContent = msg;
+
+    const isRecord = saveRecord(state.time);
+    document.getElementById('record-msg').textContent = isRecord
+      ? `🏆 НОВЫЙ РЕКОРД: ${formatTime(state.time)}`
+      : `Время: ${formatTime(state.time)} | Рекорд: ${formatTime(record)}`;
+    if (isRecord) document.getElementById('record-msg').classList.add('new-record');
+
+    document.getElementById('gameover').classList.add('active');
+  }, 1500);
+}
+
+function victory() {
+  if (!state.running) return;
+  state.running = false;
+
+  const isRecord = saveRecord(CONFIG.nightDuration);
+  document.getElementById('victory-record').textContent = isRecord
+    ? `🏆 НОВЫЙ РЕКОРД: ${formatTime(CONFIG.nightDuration)}`
+    : `Время: ${formatTime(CONFIG.nightDuration)} | Рекорд: ${formatTime(record)}`;
+  if (isRecord) document.getElementById('victory-record').classList.add('new-record');
+
+  document.getElementById('victory').classList.add('active');
+}
+
+/* =====================================================
+   ИГРОВОЙ ЦИКЛ
+===================================================== */
+function gameLoop(now) {
+  const dt = Math.min((now - lastTime) / 1000, 0.1);
+  lastTime = now;
+
+  if (state.running) {
+    state.time += dt;
+    drainPower(dt);
+
+    // Кулдауны
+    let cdChanged = false;
+    Object.keys(actionCooldowns).forEach(k => {
+      if (actionCooldowns[k] > 0) {
+        actionCooldowns[k] -= dt;
+        if (actionCooldowns[k] < 0) actionCooldowns[k] = 0;
+        cdChanged = true;
+      }
+    });
+    if (cdChanged) updateCooldownUI();
+
+    // Аниматроники раз в секунду
+    animTimer += dt;
+    if (animTimer >= 1) {
+      animTimer = 0;
+      updateAnimatronics();
+    }
+
+    updateHUD();
+
+    if (state.time >= CONFIG.nightDuration) {
+      victory();
+    }
+  }
+
+  requestAnimationFrame(gameLoop);
+}
+
+/* =====================================================
+   УПРАВЛЕНИЕ
+===================================================== */
+document.addEventListener('keydown', (e) => {
+  if (!state.running) return;
+  const k = e.key.toLowerCase();
+  if (k === 'a' || k === 'ф') toggleDoor('left');
+  else if (k === 'd' || k === 'в') toggleDoor('right');
+  else if (k === 'c' || k === 'с') toggleCams();
+  else if (k === 'q' || k === 'й') useAction('cake');
+  else if (k === 'w' || k === 'ц') useAction('sound');
+  else if (k === 'e' || k === 'у') useAction('red');
+});
+
+/* =====================================================
+   СТАРТ
+===================================================== */
+loadRecord();
+requestAnimationFrame(gameLoop);
+</script>
+</body>
+</html>
